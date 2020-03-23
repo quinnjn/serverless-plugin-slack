@@ -29,7 +29,7 @@ class SlackServerlessPlugin {
       name: this.options.f,
       service: this.serverless.service.service,
       stage: this.stage,
-      region: this.serverless.provider.region,
+      region: this.serverless.service.provider.region,
     };
   }
 
