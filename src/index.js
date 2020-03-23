@@ -29,6 +29,7 @@ class SlackServerlessPlugin {
       name: this.options.f,
       service: this.serverless.service.service,
       stage: this.stage,
+      region: this.serverless.provider.region,
     };
   }
 
@@ -40,7 +41,7 @@ class SlackServerlessPlugin {
     }
 
     const message = this.serverless.service.custom.slack.function_deploy_message ||
-            '`{{user}}` deployed function `{{name}}` to environment `{{stage}}` in service `{{service}}`';
+      '`{{user}}` deployed function `{{name}}` to environment `{{stage}}` in service `{{service}}`';
     this.webhook_url = this.serverless.service.custom.slack.webhook_url;
     const parsedMessage = SlackServerlessPlugin.parseMessage(message, this.messageVariables);
 
@@ -58,7 +59,7 @@ class SlackServerlessPlugin {
     }
 
     const message = this.serverless.service.custom.slack.service_deploy_message ||
-    '`{{user}}` deployed service `{{service}}` to environment `{{stage}}`';
+      '`{{user}}` deployed service `{{service}}` to environment `{{stage}}`';
     this.webhook_url = this.serverless.service.custom.slack.webhook_url;
     const parsedMessage = SlackServerlessPlugin.parseMessage(message, this.messageVariables);
 
@@ -70,8 +71,8 @@ class SlackServerlessPlugin {
 
   static buildRequestOptions(url, message, user, emoji) {
     let body = {
-      text: message, 
-      username: user, 
+      text: message,
+      username: user,
     }
 
     if (emoji) {
