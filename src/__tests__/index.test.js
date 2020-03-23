@@ -2,8 +2,10 @@
 const SlackServerlessPlugin = require('../index');
 
 describe('serverless plugin slack', () => {
+  const defaultProvider = { name: 'aws', region: 'us-east-2' };
+
   test('it fails on absent config ', () => {
-    const config = { service: { custom: {} } };
+    const config = { service: { custom: {} }, provider: defaultProvider };
 
     expect(() => { new SlackServerlessPlugin(config); }).toThrow('No Slack options set in config');
   });
@@ -15,21 +17,21 @@ describe('serverless plugin slack', () => {
   });
 
   test('sends an emoji when defined', () => {
-      const config = { service: { service: 'foobar', custom: { slack: { emoji: ':cloud:', user: 'jd', webhook_url: 'https://example.com' } } } };
-      const options = { f: 'bar', stage: 'staging' };
+    const config = { service: { service: 'foobar', custom: { slack: { emoji: ':cloud:', user: 'jd', webhook_url: 'https://example.com' } } }, provider: defaultProvider };
+    const options = { f: 'bar', stage: 'staging' };
 
-      const plugin = new SlackServerlessPlugin(config, options);
+    const plugin = new SlackServerlessPlugin(config, options);
 
-      SlackServerlessPlugin.sendWebhook = jest.fn();
+    SlackServerlessPlugin.sendWebhook = jest.fn();
 
-      plugin.afterDeployService();
+    plugin.afterDeployService();
 
-      expect(SlackServerlessPlugin.sendWebhook).toHaveBeenCalledWith({
-        body: '{\"text\":\"`jd` deployed service `foobar` to environment `staging`\",\"username\":\"jd\",\"icon_emoji\":\":cloud:\"}',
-        headers: { 'Content-type': 'application/json' },
-        method: 'POST',
-        url: 'https://example.com',
-      });
+    expect(SlackServerlessPlugin.sendWebhook).toHaveBeenCalledWith({
+      body: '{\"text\":\"`jd` deployed service `foobar` to environment `staging`\",\"username\":\"jd\",\"icon_emoji\":\":cloud:\"}',
+      headers: { 'Content-type': 'application/json' },
+      method: 'POST',
+      url: 'https://example.com',
+    });
   });
 
   describe("reportable", () => {
@@ -41,7 +43,7 @@ describe('serverless plugin slack', () => {
           stages: ['dev']
         }
       };
-      const config = { service: { service: 'foobar', custom: { slack } } };
+      const config = { service: { service: 'foobar', custom: { slack } }, provider: defaultProvider };
       const options = { f: 'bar', stage: 'ci' };
 
       const plugin = new SlackServerlessPlugin(config, options);
@@ -56,7 +58,7 @@ describe('serverless plugin slack', () => {
 
   describe('single function deployment', () => {
     test('it sends message', () => {
-      const config = { service: { service: 'foobar', custom: { slack: { user: 'jd', webhook_url: 'https://example.com' } } } };
+      const config = { service: { service: 'foobar', custom: { slack: { user: 'jd', webhook_url: 'https://example.com' } } }, provider: defaultProvider };
       const options = { f: 'bar', stage: 'staging' };
 
       const plugin = new SlackServerlessPlugin(config, options);
@@ -76,7 +78,7 @@ describe('serverless plugin slack', () => {
 
   describe('service deployment', () => {
     test('it sends message', () => {
-      const config = { service: { service: 'foobar', custom: { slack: { user: 'jd', webhook_url: 'https://example.com' } } } };
+      const config = { service: { service: 'foobar', custom: { slack: { user: 'jd', webhook_url: 'https://example.com' } } }, provider: defaultProvider };
       const options = { f: 'bar', stage: 'staging' };
 
       const plugin = new SlackServerlessPlugin(config, options);
@@ -92,11 +94,41 @@ describe('serverless plugin slack', () => {
         url: 'https://example.com',
       });
     });
+
+    test('it sends message with region', () => {
+      const config = {
+        service: {
+          service: 'foobar',
+          custom: {
+            slack: {
+              user: 'jd',
+              webhook_url: 'https://example.com',
+              service_deploy_message: 'in {{region}}'
+            }
+          }
+        },
+        provider: defaultProvider
+      };
+      const options = { f: 'bar', stage: 'staging' };
+
+      const plugin = new SlackServerlessPlugin(config, options);
+
+      SlackServerlessPlugin.sendWebhook = jest.fn();
+
+      plugin.afterDeployService();
+
+      expect(SlackServerlessPlugin.sendWebhook).toHaveBeenCalledWith({
+        body: '{\"text\":\"in us-east-2\",\"username\":\"jd\"}',
+        headers: { 'Content-type': 'application/json' },
+        method: 'POST',
+        url: 'https://example.com',
+      });
+    });
   });
 
   describe('default parameters properly', () => {
     test('it sends message', () => {
-      const config = { service: { service: 'foobar', custom: { slack: { user: 'jd', webhook_url: 'https://example.com' } } } };
+      const config = { service: { service: 'foobar', custom: { slack: { user: 'jd', webhook_url: 'https://example.com' } } }, provider: defaultProvider };
       const options = { f: 'bar' };
 
       const plugin = new SlackServerlessPlugin(config, options);
@@ -117,6 +149,8 @@ describe('serverless plugin slack', () => {
   describe('environment variables', () => {
     test('Uses process.env.GIT_SHA in the message', () => {
       process.env.GIT_SHA = 'deadbeef';
+      process.env.USER = 'admin';
+      process.env.DEPLOYER = 'admin';
 
       const config = {
         service: {
@@ -128,6 +162,7 @@ describe('serverless plugin slack', () => {
             },
           },
         },
+        provider: defaultProvider,
       };
       const options = { f: 'bar' };
 
@@ -150,7 +185,7 @@ describe('serverless plugin slack', () => {
 
     test("Can set the user from process.env.DEPLOYER", () => {
       process.env.DEPLOYER = "imadeployer";
-      const config = { service: { service: 'foobar', custom: { slack: { webhook_url: 'https://example.com' } } } };
+      const config = { service: { service: 'foobar', custom: { slack: { webhook_url: 'https://example.com' } } }, provider: defaultProvider };
       const options = { f: 'bar' };
 
       const plugin = new SlackServerlessPlugin(config, options);
