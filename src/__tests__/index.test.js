@@ -2,6 +2,9 @@
 const SlackServerlessPlugin = require('../index');
 
 describe('serverless plugin slack', () => {
+  beforeEach(() => {
+    delete process.env.DEPLOYER;
+  });
   const defaultProvider = {
     name: 'aws',
     region: 'us-east-2',
@@ -201,6 +204,41 @@ describe('serverless plugin slack', () => {
 
       expect(SlackServerlessPlugin.sendWebhook).toHaveBeenCalledWith({
         body: '{\"text\":\"`imadeployer` deployed service `foobar` to environment `dev`\",\"username\":\"imadeployer\"}',
+        headers: { 'Content-type': 'application/json' },
+        method: 'POST',
+        url: 'https://example.com',
+      });
+    });
+
+    test("Reports changelog changes when changelog is requested", () => {
+      process.env.CHANGELOG = [
+        "* Some",
+        "* Multiple",
+        "* Line",
+        "* Changes"
+      ].join("\n")
+
+      const config = {
+        service: {
+          service: 'foobar',
+          custom: {
+            slack: {
+              webhook_url: 'https://example.com',
+              service_deploy_message: '{{changelog}}'
+            }
+          },
+          provider: defaultProvider,
+        },
+      };
+      const options = { f: 'bar' };
+      const plugin = new SlackServerlessPlugin(config, options);
+
+      SlackServerlessPlugin.sendWebhook = jest.fn();
+
+      plugin.afterDeployService();
+
+      expect(SlackServerlessPlugin.sendWebhook).toHaveBeenCalledWith({
+        body: '{\"text\":\"Changes:\\n```* Some\\n* Multiple\\n* Line\\n* Changes```\",\"username\":\"admin\"}',
         headers: { 'Content-type': 'application/json' },
         method: 'POST',
         url: 'https://example.com',

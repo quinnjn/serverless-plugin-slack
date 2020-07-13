@@ -18,6 +18,12 @@ class SlackServerlessPlugin {
 
   refreshVariables() {
     const reportable = this.serverless.service.custom.slack.reportable || {};
+
+    let changelog;
+    if (process.env.CHANGELOG) {
+      changelog = `Changes:\n\`\`\`${process.env.CHANGELOG}\`\`\``;
+    }
+
     this.reportableStages = reportable.stages;
     this.webhook_url = this.serverless.service.custom.slack.webhook_url;
     this.emoji = this.serverless.service.custom.slack.emoji;
@@ -30,6 +36,7 @@ class SlackServerlessPlugin {
       service: this.serverless.service.service,
       stage: this.stage,
       region: this.serverless.service.provider.region,
+      changelog
     };
   }
 
