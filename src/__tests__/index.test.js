@@ -39,6 +39,39 @@ describe('serverless plugin slack', () => {
     });
   });
 
+  it(`allows channel overwrite`, () => {
+    const config = {
+      service: {
+        service: 'foobar',
+        custom: {
+          slack: {
+            webhook_url: 'https://example.com',
+            channel: `@user`
+          }
+        },
+        provider: defaultProvider
+      }
+    };
+    const options = {};
+
+    const plugin = new SlackServerlessPlugin(config, options);
+
+    SlackServerlessPlugin.sendWebhook = jest.fn();
+
+    plugin.afterDeployService();
+
+    expect(SlackServerlessPlugin.sendWebhook).toHaveBeenCalledWith({
+      body: JSON.stringify({
+        text: '`admin` deployed service `foobar` to environment `dev`',
+        username: 'admin',
+        channel: '@user',
+      }),
+      headers: { 'Content-type': 'application/json' },
+      method: 'POST',
+      url: 'https://example.com',
+    });
+  });
+
   describe("reportable", () => {
     test("does not report to non-reportable environments", () => {
       const slack = {

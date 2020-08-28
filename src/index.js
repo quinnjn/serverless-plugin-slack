@@ -43,10 +43,15 @@ class SlackServerlessPlugin {
     const message = this.serverless.service.custom.slack.function_deploy_message ||
       '`{{user}}` deployed function `{{name}}` to environment `{{stage}}` in service `{{service}}`';
     this.webhook_url = this.serverless.service.custom.slack.webhook_url;
+    this.channel = this.serverless.service.custom.slack.channel;
     const parsedMessage = SlackServerlessPlugin.parseMessage(message, this.messageVariables);
 
+    const body = {
+      icon_emoji: this.emoji,
+      channel: this.channel
+    };
     const requestOptions = SlackServerlessPlugin
-      .buildRequestOptions(this.webhook_url, parsedMessage, this.user, this.emoji);
+      .buildRequestOptions(this.webhook_url, parsedMessage, this.user, body);
 
     return SlackServerlessPlugin.sendWebhook(requestOptions);
   }
@@ -61,22 +66,27 @@ class SlackServerlessPlugin {
     const message = this.serverless.service.custom.slack.service_deploy_message ||
       '`{{user}}` deployed service `{{service}}` to environment `{{stage}}`';
     this.webhook_url = this.serverless.service.custom.slack.webhook_url;
+    this.channel = this.serverless.service.custom.slack.channel;
     const parsedMessage = SlackServerlessPlugin.parseMessage(message, this.messageVariables);
 
+    const body = {
+      icon_emoji: this.emoji,
+      channel: this.channel
+    };
     const requestOptions = SlackServerlessPlugin
-      .buildRequestOptions(this.webhook_url, parsedMessage, this.user, this.emoji);
+      .buildRequestOptions(this.webhook_url, parsedMessage, this.user, body);
 
     return SlackServerlessPlugin.sendWebhook(requestOptions);
   }
 
-  static buildRequestOptions(url, message, user, emoji) {
+  static buildRequestOptions(url, message, user, bodyProperties) {
     let body = {
       text: message,
       username: user,
     }
 
-    if (emoji) {
-      body.icon_emoji = emoji
+    for (const [k, v] of Object.entries(bodyProperties || {})) {
+      body[k] = v;
     }
 
     return {
